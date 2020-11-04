@@ -13,6 +13,7 @@ class TestCommentAPI:
 
     @pytest.mark.django_db(transaction=True)
     def test_comments_get(self, user_client, post, comment_1_post, comment_2_post, comment_1_another_post):
+        pass
         response = user_client.get(f'/api/v1/posts/{post.id}/comments/')
 
         assert response.status_code == 200, \
