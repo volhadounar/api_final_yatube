@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
 from .models import Comment, Follow, Group, Post
 
@@ -9,7 +10,8 @@ User = get_user_model()
 
 
 class PostSerializer(serializers.ModelSerializer):
-    author = serializers.ReadOnlyField(source='author.username')
+    author = serializers.SlugRelatedField(many=False, read_only=True,
+                                          slug_field='username')
 
     class Meta:
         fields = ('id', 'text', 'author', 'pub_date', 'group')
@@ -17,7 +19,8 @@ class PostSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    author = serializers.ReadOnlyField(source='author.username')
+    author = serializers.SlugRelatedField(many=False, read_only=True,
+                                          slug_field='username')
 
     class Meta:
         fields = ('id', 'author', 'post', 'text', 'created')
@@ -26,14 +29,32 @@ class CommentSerializer(serializers.ModelSerializer):
 
 
 class FollowSerializer(serializers.ModelSerializer):
-    user = serializers.SlugRelatedField(slug_field='username',
-                                        many=False, read_only=True)
-    following = serializers.SlugRelatedField(slug_field='username',
-                                             many=False, read_only=True)
+    user = serializers.SlugRelatedField(
+                    slug_field='username',
+                    many=False, read_only=True,
+                    default=serializers.CurrentUserDefault())
+    following = serializers.SlugRelatedField(
+                    slug_field='username',
+                    many=False,
+                    read_only=False,
+                    queryset=User.objects.all())
+
+    # def validate(self, data):
+    #    following = data['following']
+    #   user = data['user']????
+    #    if Follow.objects.filter(following=following, user=user).count() > 0:
+    #        raise serializers.ValidationError("item already exists")
+    #    return data
 
     class Meta:
         fields = ('user', 'following')
         model = Follow
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Follow.objects.all(),
+                fields=['following', 'user']
+            )
+        ]
 
 
 class GroupSerializer(serializers.ModelSerializer):
