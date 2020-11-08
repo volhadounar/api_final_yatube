@@ -43,8 +43,6 @@ class FollowSerializer(serializers.ModelSerializer):
     def validate(self, data):
         following = data['following']
         user = data['user']
-        if Follow.objects.filter(following=following, user=user).count() > 0:
-            raise serializers.ValidationError("item already exists")
         if user == following:
             raise serializers.ValidationError(
                               "trying to subscribe to yourself")
