@@ -5,8 +5,11 @@ import django_filters.rest_framework
 
 from rest_framework import filters
 from rest_framework import permissions
-from rest_framework import serializers
+from rest_framework.mixins import CreateModelMixin
+from rest_framework.mixins import ListModelMixin
+from rest_framework.viewsets import GenericViewSet
 from rest_framework.viewsets import ModelViewSet
+
 
 from .models import Follow, Group, Post
 from .serializers import CommentSerializer, FollowSerializer,\
@@ -23,7 +26,8 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
 
 
 class PostViewSet(ModelViewSet):
-    permission_classes = [IsOwnerOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly
+                          & IsOwnerOrReadOnly]
     serializer_class = PostSerializer
     queryset = Post.objects.all()
     filter_backends = [django_filters.rest_framework.DjangoFilterBackend]
@@ -34,7 +38,8 @@ class PostViewSet(ModelViewSet):
 
 
 class CommentViewSet(ModelViewSet):
-    permission_classes = [IsOwnerOrReadOnly]
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly
+                          & IsOwnerOrReadOnly]
     serializer_class = CommentSerializer
 
     def perform_create(self, serializer, *args, **kwargs):
@@ -48,23 +53,14 @@ class CommentViewSet(ModelViewSet):
         return post_obj.comments
 
 
-class FollowViewSet(ModelViewSet):
+class FollowViewSet(ListModelMixin, CreateModelMixin, GenericViewSet):
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     serializer_class = FollowSerializer
     queryset = Follow.objects.all()
     filter_backends = [filters.SearchFilter]
     search_fields = ['=user__username', '=following__username']
-    http_method_names = [u'get', u'post']
-
-    def perform_create(self, serializer, *args, **kwargs):
-        following_name = self.request.data['following']
-        following = get_object_or_404(User, username=following_name)
-        if Follow.objects.filter(
-                following=following, user=self.request.user).count() > 0:
-            raise serializers.ValidationError("item already exists")
-        serializer.save(following=following, user=self.request.user)
 
 
-class GroupViewSet(ModelViewSet):
+class GroupViewSet(ListModelMixin, CreateModelMixin, GenericViewSet):
     serializer_class = GroupSerializer
     queryset = Group.objects.all()
-    http_method_names = [u'get', u'post']
