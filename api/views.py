@@ -60,6 +60,8 @@ class FollowViewSet(ListModelMixin, CreateModelMixin, GenericViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['=user__username', '=following__username']
 
+    def perform_create(self, serializer, *args, **kwargs):
+        serializer.save(user=self.request.user)
 
 class GroupViewSet(ListModelMixin, CreateModelMixin, GenericViewSet):
     serializer_class = GroupSerializer
